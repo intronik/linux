@@ -1027,4 +1027,32 @@ config TOUCHSCREEN_ZFORCE
 	  To compile this driver as a module, choose M here: the
 	  module will be called zforce_ts.
 
+
+config TOUCHSCREEN_NH_FT5X06
+	tristate "NewHaven FocalTech FT5x06 I2C Touchscreen support"
+	depends on I2C
+	help
+	  Say Y here if you have an New Haven touchscreen based
+	  on the FocalTech FT5x06 family of controllers connected to
+	  your system.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called nh-ft5x06.
+
+config TOUCHSCREEN_SILEAD_GSL1680
+	tristate "SILEAD GSL1680 touchscreen controller support"
+	depends on I2C
+	help
+	  Say Y here if you have an East Rising ER-TPC050 touchscreen based
+	  on the SILEAD GSL1680 family of controllers connected to
+	  your system.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called sl-gsl1680.
+
 endif
+

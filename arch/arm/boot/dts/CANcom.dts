@@ -1,0 +1,362 @@
+/*
+ * Copyright (C) 2014 Intronik GmbH
+ *
+ * Hardware specification for Intronik CANcom module.
+ * V0.2 - 2014-10-14
+ */
+/dts-v1/;
+
+#include "am33xx.dtsi"
+#include "am335x-bone-common.dtsi"
+#include "am335x-bone-common-pinmux.dtsi"
+#include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/input/input.h>
+
+/ {
+	model = "Intronik AM335x CANcom v1";
+	compatible = "ti,am335x-bone", "ti,am33xx";
+};
+
+&ldo3_reg {
+	regulator-min-microvolt = <1800000>;
+	regulator-max-microvolt = <3300000>;
+	regulator-always-on;
+};
+
+&ocp {	
+	cape-universal { status = "disabled"; }; // disable all gpio-of-helpers
+
+	// unknown CAN0-RX, CAN1-RX IRQs???
+	P9_41_pinmux { status = "disabled"; };	// clkout2
+	P9_92_pinmux { status = "disabled"; };	// mmc1
+
+	// 16Bit-LCD-Interface
+	P8_27_pinmux { status = "disabled"; };
+	P8_28_pinmux { status = "disabled"; };
+	P8_29_pinmux { status = "disabled"; };
+	P8_30_pinmux { status = "disabled"; };
+	P8_31_pinmux { status = "disabled"; };
+	P8_32_pinmux { status = "disabled"; };
+	P8_33_pinmux { status = "disabled"; };
+	P8_34_pinmux { status = "disabled"; };
+	P8_35_pinmux { status = "disabled"; };
+	P8_36_pinmux { status = "disabled"; };
+	P8_37_pinmux { status = "disabled"; };
+	P8_38_pinmux { status = "disabled"; };
+	P8_39_pinmux { status = "disabled"; };
+	P8_40_pinmux { status = "disabled"; };
+	P8_41_pinmux { status = "disabled"; };
+	P8_42_pinmux { status = "disabled"; };
+	P8_43_pinmux { status = "disabled"; };
+	P8_44_pinmux { status = "disabled"; };
+	P8_45_pinmux { status = "disabled"; };
+	P8_46_pinmux { status = "disabled"; };
+
+	P9_19_pinmux { status = "disabled"; };	// can
+	P9_20_pinmux { status = "disabled"; };	// can
+	P9_24_pinmux { status = "disabled"; };	// can
+	P9_26_pinmux { status = "disabled"; };	// can
+	P9_21_pinmux { status = "disabled"; };	// uart
+	P9_22_pinmux { status = "disabled"; };	// uart
+	P9_11_pinmux { status = "disabled"; };	// uart
+	P9_13_pinmux { status = "disabled"; };	// uart
+		
+	P8_14_pinmux { status = "disabled"; };	// TOUCH IRQ
+	P8_16_pinmux { status = "disabled"; };	// TOUCH WAKE
+	P8_17_pinmux { status = "disabled"; };	// gpioextender IRQ
+	P8_19_pinmux { status = "disabled"; };	// RTC IRQ	
+	P9_17_pinmux { status = "disabled"; };	// i2c
+	P9_18_pinmux { status = "disabled"; };	// i2c
+	P8_07_pinmux { status = "disabled"; };  // TFT-Enable
+
+	P9_14_pinmux { mode = "pwm"; };		// pwm backlight
+	P9_29_pinmux { mode = "pwm"; };	 	// pwm beeper
+};
+
+&sham {
+	status = "okay";
+};
+
+&aes {
+	status = "okay";
+};
+
+&mmc1 {	// sd-card
+	vmmc-supply = <&vmmcsd_fixed>;
+};
+
+&mmc2 {	// emmc
+	status = "okay";
+	vmmc-supply = <&vmmcsd_fixed>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&emmc_pins>;
+	bus-width = <8>;
+};
+
+&uart0 { // X5.3 (J1.4), X5.1 (J1.5)
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart0_pins>;
+	status = "okay";
+};
+
+&uart2 { // X4.3 (P9.21), X4.1 (P9.22)
+	status = "okay";
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&P9_22_uart_pin &P9_21_uart_pin>;
+	pinctrl-1 = <&P9_22_default_pin &P9_21_default_pin>;
+}; 
+
+&uart4 { // X1.15 (P9.11), X1.16 (P9.13)
+	status = "okay";
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&P9_11_uart_pin &P9_13_uart_pin>;
+	pinctrl-1 = <&P9_11_default_pin &P9_13_default_pin>;
+};
+
+&dcan0 { // X2
+	 status = "okay";
+	 pinctrl-names = "default", "sleep";
+	 pinctrl-0 = <&P9_19_can_pin &P9_20_can_pin>;
+	 pinctrl-1 = <&P9_19_default_pin &P9_20_default_pin>;
+};
+
+&dcan1 { // X3
+	 status = "okay";
+	 pinctrl-names = "default", "sleep";
+	 pinctrl-0 = <&P9_24_can_pin &P9_26_can_pin>;
+	 pinctrl-1 = <&P9_24_default_pin &P9_26_default_pin>;
+};
+
+&epwmss0 {
+	status = "okay";
+};
+
+&epwmss1 {
+	status = "okay";
+};
+
+&ehrpwm0 { // pwm module used beeper (EHRPWM0B)
+	status = "okay";
+};
+
+&ehrpwm1 { // pwm module used backlight (EHRPWM1A)
+	status = "okay";
+};
+
+&pruss {
+	status = "disabled";
+};
+
+&lcdc {
+	status = "okay";
+};
+
+&rtc {  // we use an external i2c rtc, so this should be disabled
+	status = "disable";
+};
+
+&i2c1 {
+	//status = "disabled";
+	status = "okay";
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&P9_17_i2c_pin &P9_18_i2c_pin>;
+	pinctrl-1 = <&P9_17_default_pin &P9_18_default_pin>;
+	clock-frequency = <400000>;
+		
+	gpioextender: gpioextender@20 {
+		reg = <0x20>;
+		compatible = "nxp,pca9535";
+		pinctrl-names = "default";
+		pinctrl-0 = <&P8_17_gpio_pu_pin>;
+		gpio-controller;
+		#gpio-cells = <2>;
+		interrupt-parent = <&gpio0>;
+		interrupts = <27 IRQ_TYPE_EDGE_FALLING>;
+		interrupt-controller;
+		#interrupt-cells = <2>;
+	};
+
+        rtc-mcp7940N@6F {
+		reg = <0x6f>;
+		compatible = "mcp7941x";
+		pinctrl-names = "default";
+		pinctrl-0 = <&P8_19_gpio_pu_pin>;
+		interrupt-parent = <&gpio0>;
+		interrupts = <22 IRQ_TYPE_EDGE_FALLING>;
+	};
+
+	sl-gsl1680@40 {
+		reg = <0x40>;
+		compatible = "silead,gsl1680";
+		pinctrl-names = "default";
+		pinctrl-0 = <&P8_14_gpio_pd_pin &P8_16_gpio_pu_pin>;
+		interrupt-parent = <&gpio0>;
+		interrupts = <26 IRQ_TYPE_EDGE_RISING>;
+		wake-gpio = <&gpio1 14 0>;
+	};
+};
+
+&i2c2 { // required to enable CAN0
+	status = "disable";
+};
+
+/ {
+	cpus {
+		cpu@0 {
+			cpu0-supply = <&dcdc2_reg>;
+			/*
+			 * To consider voltage drop between PMIC and SoC,
+			 * tolerance value is reduced to 2% from 4% and
+			 * voltage value is increased as a precaution.
+			 */
+			operating-points = <
+				/* kHz    uV */
+				1000000	1325000
+				800000	1300000
+				600000	1112000
+				300000	969000
+			>;
+		};
+	};
+
+	panel {
+		status = "okay";
+		compatible = "ti,tilcdc,panel";
+		pinctrl-names = "default", "sleep";
+		pinctrl-0 = <&bbcape_lcd_pins &P8_07_gpio_pu_pin>;
+		pinctrl-1 = <&bbcape_lcd_pins &P8_07_gpio_pd_pin>;
+		panel-info {
+			ac-bias           = <255>;
+			ac-bias-intrpt    = <0>;
+			dma-burst-sz      = <16>;
+			bpp               = <16>;
+			fdd               = <0x80>;
+			sync-edge         = <1>;
+			sync-ctrl         = <1>;
+			raster-order      = <0>;
+			fifo-th           = <8>;
+		};
+		display-timings {
+			native-mode = <&NHD50timing>;
+			/* Settings for NEWHAVEN NHD5.0-800480TF-ATXI#-CTP */
+			NHD50timing: 800x480 {
+				clock-frequency = <30000000>;
+				hactive = <800>;
+				vactive = <480>;
+				hfront-porch = <40>;
+				hback-porch = <40>;
+				hsync-len = <48>;
+				vback-porch = <30>;
+				vfront-porch = <13>;
+				vsync-len = <3>;
+				hsync-active = <0>;
+				vsync-active = <0>;
+				de-active = <1>;
+				pixelclk-active = <0>;
+			};
+		};
+	};
+
+	beeper: beeper {
+		status = "okay";
+		compatible = "pwm-beeper";
+		pwms = <&ehrpwm0 1 250000 0>; // EHRPWM0B 4kHz
+	};
+
+	backlight: backlight {
+		compatible = "pwm-backlight";
+		pwms = <&ehrpwm1 0 20000 0>; // EHRPWM1A 20000ns=50KHz
+		brightness-levels = <0 55 80 105 130 155 180 205 230 255>;
+		default-brightness-level = <9>;
+		enable-gpios = <&gpio2 2 0>;
+	};
+
+	intronik_ios {
+		compatible = "gpio-of-helper";
+		status = "okay";
+
+		IntronikOut1 {
+			gpio-name = "IntronikOut1";
+			gpio = <&gpioextender 0 0>;
+			output;
+		};
+		IntronikOut2 {
+			gpio-name = "IntronikOut2";
+			gpio = <&gpioextender 1 0>;
+			output;
+		};
+		IntronikOut3 {
+			gpio-name = "IntronikOut3";
+			gpio = <&gpioextender 2 0>;
+			output;
+		};
+		IntronikOut4 {
+			gpio-name = "IntronikOut4";
+			gpio = <&gpioextender 3 0>;
+			output;
+		};
+
+		IntronikIn1 {
+			gpio-name = "IntronikIn1";
+			gpio = <&gpioextender 4 0>;
+			input;
+		};
+		IntronikIn2{
+			gpio-name = "IntronikIn2";
+			gpio = <&gpioextender 5 0>;
+			input;
+                };
+		IntronikIn3 { 
+			gpio-name = "IntronikIn3";
+			gpio = <&gpioextender 6 0>;
+			input;
+                };
+		IntronikIn4 {
+			gpio-name = "IntronikIn4";
+			gpio = <&gpioextender 7 0>;
+			input;
+                };
+		IntronikIn5 {
+			gpio-name = "IntronikIn5";
+			gpio = <&gpioextender 8 0>;
+			input;
+                };
+		IntronikIn6 {
+			gpio-name = "IntronikIn6";
+			gpio = <&gpioextender 9 0>;
+			input;
+                };
+		IntronikIn7 {
+			gpio-name = "IntronikIn7";
+			gpio = <&gpioextender 10 0>;
+			input;
+                };
+		IntronikIn8 {
+			gpio-name = "IntronikIn8";
+			gpio = <&gpioextender 11 0>;
+			input;
+                };
+		IntronikIn9 {
+			gpio-name = "IntronikIn9";
+			gpio = <&gpioextender 12 0>;
+			input;
+                };
+		IntronikIn10 {
+			gpio-name = "IntronikIn10";
+			gpio = <&gpioextender 13 0>;
+			input;
+		};
+/*                IntronikIn11 {
+                        gpio-name = "IntronikIn11";
+                        gpio = <&gpioextender 14 0>;
+                        input;
+                };
+                IntronikIn12 {
+                        gpio-name = "IntronikIn12";
+                        gpio = <&gpioextender 15 0>;
+                        input;
+                };
+*/
+	};
+
+};
