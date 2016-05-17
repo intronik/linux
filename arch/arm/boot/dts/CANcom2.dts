@@ -204,85 +204,6 @@
 		compatible = "gpio-of-helper";
 		status = "okay";
 		
-		CanComOut00 {
-			gpio-name = "Out00";
-			gpio = <&gpio2 2 0>;
-			output;
-			init-low;
-		};	
-		CanComOut01 {
-			gpio-name = "Out01";
-			gpio = <&gpio2 3 0>;
-			output;
-			init-low;
-		};	
-		CanComOut02 {
-			gpio-name = "Out02";
-			gpio = <&gpio2 5 0>;
-			output;
-			init-low;
-		};
-		CanComOut03 {
-			gpio-name = "Out03";
-			gpio = <&gpio2 4 0>;
-			output;
-			init-low;
-		};
-		CanComOut04 {
-			gpio-name = "Out04";
-			gpio = <&gpio1 13 0>;
-			output;
-			init-low;
-		};
-		CanComOut05 {
-			gpio-name = "Out05";
-			gpio = <&gpio1 12 0>;
-			output;
-			init-low;
-		};
-		CanComOut06 {
-			gpio-name = "Out06";
-			gpio = <&gpio0 23 0>;
-			output;
-			init-low;
-		};	
-		CanComOut07 {
-			gpio-name = "Out07";
-			gpio = <&gpio0 26 0>;
-			output;
-			init-low;
-		};	
-		CanComOut08 {
-			gpio-name = "Out08";
-			gpio = <&gpio1 15 0>;
-			output;
-			init-low;
-		};	
-		CanComOut09 {
-			gpio-name = "Out09";
-			gpio = <&gpio1 29 0>;
-			output;
-			init-low;
-		};
-		CanComOut10 {
-			gpio-name = "Out10";
-			gpio = <&gpio1 28 0>;
-			output;
-			init-low;
-		};	
-		CanComOut11 {
-			gpio-name = "Out11";
-			gpio = <&gpio1 16 0>;
-			output;
-			init-low;
-		};	
-		CanComOut12 {
-			gpio-name = "Out12";
-			gpio = <&gpio1 19 0>;
-			output;
-			init-low;
-		};	
-
 		CanComInp00 {
 			gpio-name = "Inp00";
 			gpio = <&gpioextender 0 0>;
@@ -363,5 +284,84 @@
 			gpio = <&gpioextender 15 0>;
 			input;
 		};
+				
+		CanComOut00 {
+			gpio-name = "Out00";
+			gpio = <&gpio2 2 0>;
+			output;
+			init-low;
+		};	
+		CanComOut01 {
+			gpio-name = "Out01";
+			gpio = <&gpio2 3 0>;
+			output;
+			init-low;
+		};	
+		CanComOut02 {
+			gpio-name = "Out02";
+			gpio = <&gpio2 5 0>;
+			output;
+			init-low;
+		};
+		CanComOut03 {
+			gpio-name = "Out03";
+			gpio = <&gpio2 4 0>;
+			output;
+			init-low;
+		};
+		CanComOut04 {
+			gpio-name = "Out04";
+			gpio = <&gpio1 13 0>;
+			output;
+			init-low;
+		};
+		CanComOut05 {
+			gpio-name = "Out05";
+			gpio = <&gpio1 12 0>;
+			output;
+			init-low;
+		};
+		CanComOut06 {
+			gpio-name = "Out06";
+			gpio = <&gpio0 23 0>;
+			output;
+			init-low;
+		};	
+		CanComOut07 {
+			gpio-name = "Out07";
+			gpio = <&gpio0 26 0>;
+			output;
+			init-low;
+		};	
+		CanComOut08 {
+			gpio-name = "Out08";
+			gpio = <&gpio1 15 0>;
+			output;
+			init-low;
+		};	
+		CanComOut09 {
+			gpio-name = "Out09";
+			gpio = <&gpio1 29 0>;
+			output;
+			init-low;
+		};
+		CanComOut10 {
+			gpio-name = "Out10";
+			gpio = <&gpio1 28 0>;
+			output;
+			init-low;
+		};	
+		CanComOut11 {
+			gpio-name = "Out11";
+			gpio = <&gpio1 16 0>;
+			output;
+			init-low;
+		};	
+		CanComOut12 {
+			gpio-name = "Out12";
+			gpio = <&gpio1 19 0>;
+			output;
+			init-low;
+		};	
 	};
 };
