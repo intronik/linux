@@ -2,14 +2,14 @@
 # settings start here
 DIR=$PWD
 echo building intronik kernel for beagle bone
-export CC=/opt/gcc-linaro-arm-linux-gnueabihf-4.9/bin/arm-linux-gnueabihf-
-export CORES=3
+export CC=/home/INTRONIK/linuxdev/gcc-4.9/bin/arm-linux-gnueabihf-
+export CORES=8
 export BUILD=intronik4
 export DISTRO=cross
 export DEBARCH=armhf
 export ARCH=arm
 # export config="intronik_defconfig"
-export DEPLOY=${DIR}/../intronik-deploy
+export DEPLOY=/home/INTRONIK/linux/deploy
 export LOCALVERSION=-${BUILD}
 export CROSS_COMPILE="${CC}"
 mkdir -p ${DEPLOY}
