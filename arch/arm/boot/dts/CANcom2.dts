@@ -2,7 +2,7 @@
  * Copyright (C) 2016 Intronik GmbH
  *
  * Hardware specification for Intronik CANcom module.
- * V0.2 - 2016-05-17 Daniel Gross
+ * V0.2 (11.03.2016) - 2016-05-18 Daniel Gross
  */
 /dts-v1/;
 
@@ -143,21 +143,20 @@
 	pinctrl-0 = <&user_leds_s0 &P9_30_gpio_pu_pin &P9_31_gpio_pu_pin>;
 	pinctrl-1 = <&user_leds_sleep &P9_30_gpio_pu_pin &P9_31_gpio_pu_pin>;
 	
-	led@red {
+	led@green {		// P9_30
 		label = "cancom:led:green";
 		gpios = <&gpio3 16 GPIO_ACTIVE_LOW>;
 		linux,default-trigger = "heartbeat";
 		default-state = "off";
 	};
 	
-	led@green {
+	led@red {		// P9_31
 		label = "cancom:led:red";
 		gpios = <&gpio3 14 GPIO_ACTIVE_LOW>;
 		linux,default-trigger = "timer";
 		default-state = "off";
 	};
 };
-
 
 / {
 	cpus {
@@ -185,24 +184,45 @@
 	};
 	
 	CanComIo {
-		pinctrl-names = "default";
+		pinctrl-names = "default", "sleep";
 		pinctrl-0 = <
-			&P8_07_gpio_pin
-			&P8_08_gpio_pin
-			&P8_09_gpio_pin
-			&P8_10_gpio_pin
-			&P8_11_gpio_pin
-			&P8_12_gpio_pin
-			&P8_13_gpio_pin
-			&P8_14_gpio_pin
-			&P8_15_gpio_pin
-			&P8_26_gpio_pin
-			&P9_12_gpio_pin
-			&P9_15_gpio_pin
-			&P9_16_gpio_pin
+			&P8_07_gpio_pin		// OUT_0
+			&P8_08_gpio_pin		// OUT_1
+			&P8_09_gpio_pin		// OUT_2
+			&P8_10_gpio_pin		// OUT_3
+			&P8_11_gpio_pin		// OUT_4
+			&P8_12_gpio_pin		// OUT_5
+			&P8_13_gpio_pin		// OUT_6
+			&P8_14_gpio_pin		// OUT_7
+			&P8_15_gpio_pin		// OUT_8
+			&P8_26_gpio_pin		// OUT_9
+			&P9_12_gpio_pin		// OUT_10
+			&P9_15_gpio_pin		// OUT_11
+			&P9_16_gpio_pin		// OUT_12
+		>;
+		pinctrl-1 = <
+			&P8_07_gpio_pd_pin	// OUT_0
+			&P8_08_gpio_pd_pin	// OUT_1
+			&P8_09_gpio_pd_pin	// OUT_2
+			&P8_10_gpio_pd_pin	// OUT_3
+			&P8_11_gpio_pd_pin	// OUT_4
+			&P8_12_gpio_pd_pin	// OUT_5
+			&P8_13_gpio_pd_pin	// OUT_6
+			&P8_14_gpio_pd_pin	// OUT_7
+			&P8_15_gpio_pd_pin	// OUT_8
+			&P8_26_gpio_pd_pin	// OUT_9
+			&P9_12_gpio_pd_pin	// OUT_10
+			&P9_15_gpio_pd_pin	// OUT_11
+			&P9_16_gpio_pd_pin	// OUT_12
 		>;
 		compatible = "gpio-of-helper";
 		status = "okay";
+		
+		// !!!BITTE BEACHTEN!!!
+		// Es müssen hier zuerst die IOs vom i2c-gpioextender verwendet werden.
+		// Der gpioextender gibt beim ersten Aufruf meist ERR_DEFERR zurück, wenn
+		// dann aber schon ein Teil der IOs angelegt ist, kommt der gpio-of-helper
+		// nicht damit klar und bricht alles ab.
 		
 		CanComInp00 {
 			gpio-name = "Inp00";
@@ -284,7 +304,10 @@
 			gpio = <&gpioextender 15 0>;
 			input;
 		};
-				
+		
+		//		
+		// OUTPUTS
+		//
 		CanComOut00 {
 			gpio-name = "Out00";
 			gpio = <&gpio2 2 0>;
@@ -357,11 +380,11 @@
 			output;
 			init-low;
 		};	
-		CanComOut12 {
-			gpio-name = "Out12";
+		CanComOutCanPwrEnable {	// P9_16: OUT_12
+			gpio-name = "OutCanPwrEnable";
 			gpio = <&gpio1 19 0>;
 			output;
-			init-low;
+			init-high;
 		};	
 	};
 };

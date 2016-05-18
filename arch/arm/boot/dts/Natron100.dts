@@ -3,6 +3,7 @@
  *
  * Hardware specification for Intronik Natron control module.
  * V1.0 - 2015-08-24
+ *        2016-05-18 Rev 1 DG RS485 Support
  */
 /dts-v1/;
 
@@ -13,7 +14,7 @@
 #include <dt-bindings/input/input.h>
 
 / {
-	model = "Intronik AM335x Natron v1.0";
+	model = "Intronik N-TRON v1.0 Rev1";
 	compatible = "ti,am335x-bone-black", "ti,am335x-bone", "ti,am33xx";
 };
 
@@ -43,20 +44,27 @@
 	bus-width = <8>;
 };
 
-&uart0 { // X5.3 (J1.4), X5.1 (J1.5)
+&uart0 { // X401 TTL PFOSTEN (PIN4: RX, PIN5: TX, GND: PIN1)
 	pinctrl-names = "default";
 	pinctrl-0 = <&uart0_pins>;
 	status = "okay";
 };
 
-&uart2 { // X4.3 (P9.21), X4.1 (P9.22)
+&uart2 { // X600 RS495 D-SUB-9 (D- Pin 6&7, D+ Pin 8&9)
 	status = "okay";
 	pinctrl-names = "default", "sleep";
-	pinctrl-0 = <&P9_22_uart_pin &P9_21_uart_pin>;
-	pinctrl-1 = <&P9_22_default_pin &P9_21_default_pin>;
-}; 
+	pinctrl-0 = <&P9_22_uart_pin &P9_21_uart_pin &P9_23_gpio_pin>;
+	pinctrl-1 = <&P9_22_default_pin &P9_21_default_pin &P9_23_gpio_pd_pin>;
+	// enable RS485 support DRIVER ENABLE IS ON P9_23
+	// see driver source \\fileserver\linux-home\linuxdev\kernel4.1\drivers\tty\serial\omap-serial.c
+	rts-gpio = <&gpio1 17 GPIO_ACTIVE_HIGH>;
+	rs485-rts-active-high;
+	rs485-rx-during-tx;
+	rs485-rts-delay = <1 1>;
+	linux,rs485-enabled-at-boot-time;
+};
 
-&uart4 { // X1.15 (P9.11), X1.16 (P9.13)
+&uart4 { // X600 RS232 D-SUB-9 (TX:2, RX:3, GND:5)
 	status = "okay";
 	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&P9_11_uart_pin &P9_13_uart_pin>;

@@ -9,7 +9,7 @@ export DISTRO=cross
 export DEBARCH=armhf
 export ARCH=arm
 # export config="intronik_defconfig"
-export DEPLOY=/home/INTRONIK/linux/deploy
+export DEPLOY=/home/INTRONIK/linuxdev/deploy
 export LOCALVERSION=-${BUILD}
 export CROSS_COMPILE="${CC}"
 mkdir -p ${DEPLOY}
