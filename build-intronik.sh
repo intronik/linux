@@ -4,7 +4,7 @@ DIR=$PWD
 echo building intronik kernel for beagle bone
 export CC=/home/INTRONIK/linuxdev/gcc-4.9/bin/arm-linux-gnueabihf-
 export CORES=8
-export BUILD=intronik4
+export BUILD=intronik5
 export DISTRO=cross
 export DEBARCH=armhf
 export ARCH=arm
