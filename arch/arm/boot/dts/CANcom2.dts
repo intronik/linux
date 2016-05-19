@@ -124,7 +124,7 @@
 		#interrupt-cells = <2>;
 	};
 
-    rtc-mcp7940N@6F {
+	rtc-mcp7940N@6F {
 		reg = <0x6f>;
 		compatible = "mcp7941x";
 		pinctrl-names = "default";
@@ -138,25 +138,9 @@
 	status = "disable";
 };
 
-&leds {
-	pinctrl-names = "default", "sleep";
-	pinctrl-0 = <&user_leds_s0 &P9_30_gpio_pu_pin &P9_31_gpio_pu_pin>;
-	pinctrl-1 = <&user_leds_sleep &P9_30_gpio_pu_pin &P9_31_gpio_pu_pin>;
-	
-	led@green {		// P9_30
-		label = "cancom:led:green";
-		gpios = <&gpio3 16 GPIO_ACTIVE_LOW>;
-		linux,default-trigger = "heartbeat";
-		default-state = "off";
-	};
-	
-	led@red {		// P9_31
-		label = "cancom:led:red";
-		gpios = <&gpio3 14 GPIO_ACTIVE_LOW>;
-		linux,default-trigger = "timer";
-		default-state = "off";
-	};
-};
+
+// we do not want the default leds (that way we save a lot of power, in sleep)
+/delete-node/ &leds;
 
 / {
 	cpus {
@@ -174,6 +158,27 @@
 				600000	1112000
 				300000	969000
 			>;
+		};
+	};
+
+	intronik_leds: intronik_leds {
+		pinctrl-names = "default", "sleep";
+		pinctrl-0 = <&P9_30_gpio_pu_pin &P9_31_gpio_pu_pin>;
+		pinctrl-1 = <&P9_30_gpio_pu_pin &P9_31_gpio_pu_pin>;
+		compatible = "gpio-leds";
+		
+		led@green {		// P9_30
+			label = "cancom:led:green";
+			gpios = <&gpio3 16 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "heartbeat";
+			default-state = "off";
+		};
+		
+		led@red {		// P9_31
+			label = "cancom:led:red";
+			gpios = <&gpio3 14 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "timer";
+			default-state = "off";
 		};
 	};
 
@@ -198,7 +203,9 @@
 			&P8_26_gpio_pin		// OUT_9
 			&P9_12_gpio_pin		// OUT_10
 			&P9_15_gpio_pin		// OUT_11
-			&P9_16_gpio_pin		// OUT_12
+			&P9_16_gpio_pu_pin	// OUT_12 (CAN BUS POWER)
+			&P9_41_gpio_pin		// CAN0 RX Wakeup Event
+			&P9_42_gpio_pin		// CAN1 RX Wakeup Event
 		>;
 		pinctrl-1 = <
 			&P8_07_gpio_pd_pin	// OUT_0
@@ -213,8 +220,11 @@
 			&P8_26_gpio_pd_pin	// OUT_9
 			&P9_12_gpio_pd_pin	// OUT_10
 			&P9_15_gpio_pd_pin	// OUT_11
-			&P9_16_gpio_pd_pin	// OUT_12
+			&P9_16_gpio_pu_pin	// OUT_12 (CAN BUS POWER STAY ON)
+			&P9_41_gpio_pin		// CAN0 RX Wakeup Event
+			&P9_42_gpio_pin		// CAN1 RX Wakeup Event
 		>;
+
 		compatible = "gpio-of-helper";
 		status = "okay";
 		
@@ -386,5 +396,17 @@
 			output;
 			init-high;
 		};	
+		
+		// just for can wakup reasons
+		Can0Wakup { // P9_41 CAN0 RX
+			gpio-name = "InpCan0rx";
+			gpio = <&gpio0 20 0>;
+			input;
+		};
+		Can1Wakup { // P9_42 CAN1 RX
+			gpio-name = "InpCan1rx";
+			gpio = <&gpio0 7 0>;
+			input;
+		};
 	};
 };
