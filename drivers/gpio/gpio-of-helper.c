@@ -401,13 +401,13 @@ static int gpio_of_helper_remove(struct platform_device *pdev)
 #ifdef CONFIG_PM
 static int gpio_of_helper_runtime_suspend(struct device *dev)
 {
-	/* place holder */
+	pinctrl_pm_select_sleep_state(dev);
 	return 0;
 }
 
 static int gpio_of_helper_runtime_resume(struct device *dev)
 {
-	/* place holder */
+	pinctrl_pm_select_default_state(dev);
 	return 0;
 }
 
