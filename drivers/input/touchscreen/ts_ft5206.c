@@ -119,14 +119,14 @@ static int ft5x0x_write_reg(struct i2c_client *client, u8 addr, u8 para)
         pr_err("write reg failed! %#x ret: %d", buf[0], ret);
         return -1;
     }
-    
+
     return 0;
 }
 
 FTS_BOOL i2c_read_interface(struct i2c_client *client, FTS_BYTE bt_ctpm_addr, FTS_BYTE* pbt_buf, FTS_DWRD dw_lenth)
 {
     int ret;
-    
+
     ret=i2c_master_recv(client, pbt_buf, dw_lenth);
 
     if(ret<=0)
@@ -134,7 +134,7 @@ FTS_BOOL i2c_read_interface(struct i2c_client *client, FTS_BYTE bt_ctpm_addr, FT
         printk("[FTS]i2c_read_interface error\n");
         return FTS_FALSE;
     }
-  
+
     return FTS_TRUE;
 }
 
@@ -164,7 +164,7 @@ FTS_BOOL cmd_write(struct i2c_client *client, FTS_BYTE btcmd,FTS_BYTE btPara1,FT
 
 FTS_BOOL byte_write(struct i2c_client *client, FTS_BYTE* pbt_buf, FTS_DWRD dw_len)
 {
-    
+
     return i2c_write_interface(client, I2C_CTPM_ADDRESS, pbt_buf, dw_len);
 }
 
@@ -193,8 +193,8 @@ E_UPGRADE_ERR_TYPE ft5206_ts_load_fw(struct i2c_client *client, FTS_BYTE* pbt_bu
      /*write 0x55 to register 0xfc*/
     ft5x0x_write_reg(client,0xfc,0x55);
     printk("[FTS] Step 1: Reset CTPM test\n");
-   
-    delay_qt_ms(30);   
+
+    delay_qt_ms(30);
 
 
     //Step 2:Enter upgrade mode
@@ -226,7 +226,7 @@ E_UPGRADE_ERR_TYPE ft5206_ts_load_fw(struct i2c_client *client, FTS_BYTE* pbt_bu
 
     //Step 4:erase app and panel paramenter area
     cmd_write(client, 0x61,0x00,0x00,0x00,1);  //erase app area
-    delay_qt_ms(1500); 
+    delay_qt_ms(1500);
     cmd_write(client, 0x63,0x00,0x00,0x00,1);  //erase panel parameter area
     delay_qt_ms(100);
     printk("[FTS] Step 4: erase. \n");
@@ -249,10 +249,10 @@ E_UPGRADE_ERR_TYPE ft5206_ts_load_fw(struct i2c_client *client, FTS_BYTE* pbt_bu
 
         for (i=0;i<FTS_PACKET_LENGTH;i++)
         {
-            packet_buf[6+i] = pbt_buf[j*FTS_PACKET_LENGTH + i]; 
+            packet_buf[6+i] = pbt_buf[j*FTS_PACKET_LENGTH + i];
             bt_ecc ^= packet_buf[6+i];
         }
-        
+
         byte_write(client, &packet_buf[0],FTS_PACKET_LENGTH + 6);
         delay_qt_ms(FTS_PACKET_LENGTH/6 + 1);
         if ((j * FTS_PACKET_LENGTH % 1024) == 0)
@@ -273,11 +273,11 @@ E_UPGRADE_ERR_TYPE ft5206_ts_load_fw(struct i2c_client *client, FTS_BYTE* pbt_bu
 
         for (i=0;i<temp;i++)
         {
-            packet_buf[6+i] = pbt_buf[ packet_number*FTS_PACKET_LENGTH + i]; 
+            packet_buf[6+i] = pbt_buf[ packet_number*FTS_PACKET_LENGTH + i];
             bt_ecc ^= packet_buf[6+i];
         }
 
-        byte_write(client, &packet_buf[0],temp+6);    
+        byte_write(client, &packet_buf[0],temp+6);
         delay_qt_ms(20);
     }
 
@@ -290,13 +290,13 @@ E_UPGRADE_ERR_TYPE ft5206_ts_load_fw(struct i2c_client *client, FTS_BYTE* pbt_bu
         temp =1;
         packet_buf[4] = (FTS_BYTE)(temp>>8);
         packet_buf[5] = (FTS_BYTE)temp;
-        packet_buf[6] = pbt_buf[ dw_lenth + i]; 
+        packet_buf[6] = pbt_buf[ dw_lenth + i];
         bt_ecc ^= packet_buf[6];
 
-        byte_write(client, &packet_buf[0],7);  
+        byte_write(client, &packet_buf[0],7);
         delay_qt_ms(20);
     }
-    
+
 	//Step 6: read out checksum
     //send the opration head
     cmd_write(client, 0xcc,0x00,0x00,0x00,1);
@@ -306,7 +306,7 @@ E_UPGRADE_ERR_TYPE ft5206_ts_load_fw(struct i2c_client *client, FTS_BYTE* pbt_bu
     {
         return ERR_ECC;
     }
- 
+
     return ERR_OK;
 }
 
@@ -356,10 +356,10 @@ static irqreturn_t ft5206_ts_irq_handler(int irq, void *dev_id) {
 	if (error < 0)
 		goto end;
 
-	
+
 	c = buf[0];			// get number of fingers
 	if (c>MAX_FINGERS)		// limit that value
-		c=MAX_FINGERS;		
+		c=MAX_FINGERS;
 	prawfinger = &buf[1];		// set start pointer of buffer to first finger struct
 
 	/* multi touch protocol A
@@ -367,7 +367,7 @@ static irqreturn_t ft5206_ts_irq_handler(int irq, void *dev_id) {
 	*/
 	for (i=0; i<buf[0]; i++)
 	{
-		u16 x = MAX_X-(((prawfinger[0]&0xF)<<8)|(prawfinger[1]));
+		u16 x = ((prawfinger[0]&0xF)<<8)|(prawfinger[1]);
 		u16 y = ((prawfinger[2]&0xF)<<8)|(prawfinger[3]);
 		u8 ev = prawfinger[0]>>6;	// 2 bit event flag
 		//u8 id = prawfinger[2]>>4;	// 4bit touch id
@@ -399,9 +399,9 @@ static int ft5206_ts_probe(struct i2c_client *client, const struct i2c_device_id
 		dev_err(&client->dev, "need I2C_FUNC_I2C\n");
 		return -EIO;
 	}
-    
+
     ft5206_ts_identify(client);
-	
+
 	pinctrl = devm_pinctrl_get_select_default(&client->dev);
 	if (IS_ERR(pinctrl))
 		dev_warn(&client->dev, "pins are not configured\n");
@@ -416,7 +416,7 @@ static int ft5206_ts_probe(struct i2c_client *client, const struct i2c_device_id
 	input_dev = devm_input_allocate_device(&client->dev);
 	if (!input_dev)
 		return -ENOMEM;
-		
+
 	dev_info(&client->dev, "loading ft5206 ctp");
 
 	ts->client = client;
@@ -442,7 +442,7 @@ static int ft5206_ts_probe(struct i2c_client *client, const struct i2c_device_id
 				"Unable to request GPIO pin %d.\n",
 				ts->touch_gpio);
 				return error;
-		}		
+		}
 		client->irq = gpio_to_irq(ts->touch_gpio);
 		if (client->irq < 0) {
 			error = client->irq;
@@ -514,7 +514,7 @@ static int ft5206_ts_suspend(struct device *dev) {
 
 static int ft5206_ts_resume(struct device *dev) {
 	struct i2c_client *client = to_i2c_client(dev);
-	
+
 	if (device_may_wakeup(&client->dev)) {
 		disable_irq_wake(client->irq);
 	} else {
