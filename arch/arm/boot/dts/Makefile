@@ -433,8 +433,9 @@ dtb-$(CONFIG_SOC_AM33XX) += \
 	am335x-pepper.dtb \
 	am335x-lxm.dtb \
 	am335x-chiliboard.dtb \
-	CANcom50.dtb \
-	CANcom2.dtb \
+	CANcom1-0.50.dtb \
+	CANcom2-0.20.dtb \
+	CANcom2-0.40.dtb \
 	Natron100.dtb \
 	Natron100flashTouch.dtb
 dtb-$(CONFIG_ARCH_OMAP4) += \
