@@ -1,5 +1,5 @@
 /*
- *  PCA953x 4/8/16/24/40 bit I/O ports
+ *  PCA953x 4/8/16 bit I/O ports
  *
  *  Copyright (C) 2005 Ben Gardner <bgardner@wabtec.com>
  *  Copyright (C) 2007 Marvell International Ltd.
@@ -15,6 +15,8 @@
 #include <linux/init.h>
 #include <linux/gpio.h>
 #include <linux/interrupt.h>
+#include <linux/irq.h>
+#include <linux/irqdomain.h>
 #include <linux/i2c.h>
 #include <linux/platform_data/pca953x.h>
 #include <linux/slab.h>
@@ -27,6 +29,7 @@
 #define PCA953X_OUTPUT		1
 #define PCA953X_INVERT		2
 #define PCA953X_DIRECTION	3
+#define PCA6416_INT_MASK	0x25		// value is multiplied by 2 and thus is realy 0x4A
 
 #define REG_ADDR_AI		0x80
 
@@ -41,6 +44,7 @@
 
 #define PCA_GPIO_MASK		0x00FF
 #define PCA_INT			0x0100
+#define PCA_INT_ENR		0x0200		// this type has an interrupt enable register
 #define PCA953X_TYPE		0x1000
 #define PCA957X_TYPE		0x2000
 
@@ -58,7 +62,6 @@ static const struct i2c_device_id pca953x_id[] = {
 	{ "pca9557", 8  | PCA953X_TYPE, },
 	{ "pca9574", 8  | PCA957X_TYPE | PCA_INT, },
 	{ "pca9575", 16 | PCA957X_TYPE | PCA_INT, },
-	{ "pca9698", 40 | PCA953X_TYPE, },
 
 	{ "max7310", 8  | PCA953X_TYPE, },
 	{ "max7312", 16 | PCA953X_TYPE | PCA_INT, },
@@ -68,7 +71,6 @@ static const struct i2c_device_id pca953x_id[] = {
 	{ "tca6408", 8  | PCA953X_TYPE | PCA_INT, },
 	{ "tca6416", 16 | PCA953X_TYPE | PCA_INT, },
 	{ "tca6424", 24 | PCA953X_TYPE | PCA_INT, },
-	{ "xra1202", 8  | PCA953X_TYPE },
 	{ }
 };
 MODULE_DEVICE_TABLE(i2c, pca953x_id);
@@ -90,6 +92,7 @@ struct pca953x_chip {
 	u8 irq_stat[MAX_BANK];
 	u8 irq_trig_raise[MAX_BANK];
 	u8 irq_trig_fall[MAX_BANK];
+	struct irq_domain *domain;
 #endif
 
 	struct i2c_client *client;
@@ -362,6 +365,12 @@ static void pca953x_setup_gpio(struct pca953x_chip *chip, int gpios)
 }
 
 #ifdef CONFIG_GPIO_PCA953X_IRQ
+static int pca953x_gpio_to_irq(struct gpio_chip *gc, unsigned off)
+{
+	struct pca953x_chip *chip = to_pca(gc);
+	return irq_create_mapping(chip->domain, off);
+}
+
 static void pca953x_irq_mask(struct irq_data *d)
 {
 	struct gpio_chip *gc = irq_data_get_irq_chip_data(d);
@@ -495,24 +504,43 @@ static irqreturn_t pca953x_irq_handler(int irq, void *devid)
 	struct pca953x_chip *chip = devid;
 	u8 pending[MAX_BANK];
 	u8 level;
-	unsigned nhandled = 0;
 	int i;
 
 	if (!pca953x_irq_pending(chip, pending))
-		return IRQ_NONE;
+		return IRQ_HANDLED;
 
 	for (i = 0; i < NBANK(chip); i++) {
 		while (pending[i]) {
 			level = __ffs(pending[i]);
-			handle_nested_irq(irq_find_mapping(chip->gpio_chip.irqdomain,
+			handle_nested_irq(irq_find_mapping(chip->domain,
 							level + (BANK_SZ * i)));
 			pending[i] &= ~(1 << level);
-			nhandled++;
 		}
 	}
 
-	return (nhandled > 0) ? IRQ_HANDLED : IRQ_NONE;
+	return IRQ_HANDLED;
 }
+
+static int pca953x_gpio_irq_map(struct irq_domain *d, unsigned int irq,
+		       irq_hw_number_t hwirq)
+{
+	irq_clear_status_flags(irq, IRQ_NOREQUEST);
+	irq_set_chip_data(irq, d->host_data);
+	irq_set_chip(irq, &pca953x_irq_chip);
+	irq_set_nested_thread(irq, true);
+#ifdef CONFIG_ARM
+	set_irq_flags(irq, IRQF_VALID);
+#else
+	irq_set_noprobe(irq);
+#endif
+
+	return 0;
+}
+
+static const struct irq_domain_ops pca953x_irq_simple_ops = {
+	.map = pca953x_gpio_irq_map,
+	.xlate = irq_domain_xlate_twocell,
+};
 
 static int pca953x_irq_setup(struct pca953x_chip *chip,
 			     const struct i2c_device_id *id,
@@ -521,7 +549,7 @@ static int pca953x_irq_setup(struct pca953x_chip *chip,
 	struct i2c_client *client = chip->client;
 	int ret, i, offset = 0;
 
-	if (client->irq && irq_base != -1
+	if (irq_base != -1
 			&& (id->driver_data & PCA_INT)) {
 
 		switch (chip->chip_type) {
@@ -536,6 +564,13 @@ static int pca953x_irq_setup(struct pca953x_chip *chip,
 		if (ret)
 			return ret;
 
+		/* some chips require an interrupt enable register */
+		if (id->driver_data & PCA_INT_ENR)
+		{
+			const u32 enableAll = 0x00000000;
+			pca953x_write_regs(chip, PCA6416_INT_MASK, (u8*) &enableAll);
+		}
+
 		/*
 		 * There is no way to know which GPIO line generated the
 		 * interrupt.  We have to rely on the previous read for
@@ -545,12 +580,19 @@ static int pca953x_irq_setup(struct pca953x_chip *chip,
 			chip->irq_stat[i] &= chip->reg_direction[i];
 		mutex_init(&chip->irq_lock);
 
+		chip->domain = irq_domain_add_simple(client->dev.of_node,
+						chip->gpio_chip.ngpio,
+						irq_base,
+						&pca953x_irq_simple_ops,
+						chip);
+		if (!chip->domain)
+			return -ENODEV;
+
 		ret = devm_request_threaded_irq(&client->dev,
 					client->irq,
 					   NULL,
 					   pca953x_irq_handler,
-					   IRQF_TRIGGER_LOW | IRQF_ONESHOT |
-						   IRQF_SHARED,
+					   IRQF_TRIGGER_FALLING | IRQF_ONESHOT,
 					   dev_name(&client->dev), chip);
 		if (ret) {
 			dev_err(&client->dev, "failed to request irq %d\n",
@@ -558,16 +600,7 @@ static int pca953x_irq_setup(struct pca953x_chip *chip,
 			return ret;
 		}
 
-		ret =  gpiochip_irqchip_add(&chip->gpio_chip,
-					    &pca953x_irq_chip,
-					    irq_base,
-					    handle_simple_irq,
-					    IRQ_TYPE_NONE);
-		if (ret) {
-			dev_err(&client->dev,
-				"could not connect irqchip to gpiochip\n");
-			return ret;
-		}
+		chip->gpio_chip.to_irq = pca953x_gpio_to_irq;
 	}
 
 	return 0;
@@ -584,6 +617,49 @@ static int pca953x_irq_setup(struct pca953x_chip *chip,
 		dev_warn(&client->dev, "interrupt support not compiled in\n");
 
 	return 0;
+}
+#endif
+
+/*
+ * Handlers for alternative sources of platform_data
+ */
+#ifdef CONFIG_OF_GPIO
+/*
+ * Translate OpenFirmware node properties into platform_data
+ * WARNING: This is DEPRECATED and will be removed eventually!
+ */
+static void
+pca953x_get_alt_pdata(struct i2c_client *client, int *gpio_base, u32 *invert)
+{
+	struct device_node *node;
+	const __be32 *val;
+	int size;
+
+	node = client->dev.of_node;
+	if (node == NULL)
+		return;
+
+	*gpio_base = -1;
+	val = of_get_property(node, "linux,gpio-base", &size);
+	WARN(val, "%s: device-tree property 'linux,gpio-base' is deprecated!", __func__);
+	if (val) {
+		if (size != sizeof(*val))
+			dev_warn(&client->dev, "%s: wrong linux,gpio-base\n",
+				 node->full_name);
+		else
+			*gpio_base = be32_to_cpup(val);
+	}
+
+	val = of_get_property(node, "polarity", NULL);
+	WARN(val, "%s: device-tree property 'polarity' is deprecated!", __func__);
+	if (val)
+		*invert = *val;
+}
+#else
+static void
+pca953x_get_alt_pdata(struct i2c_client *client, int *gpio_base, u32 *invert)
+{
+	*gpio_base = -1;
 }
 #endif
 
@@ -661,8 +737,12 @@ static int pca953x_probe(struct i2c_client *client,
 		invert = pdata->invert;
 		chip->names = pdata->names;
 	} else {
-		chip->gpio_start = -1;
-		irq_base = 0;
+		pca953x_get_alt_pdata(client, &chip->gpio_start, &invert);
+#ifdef CONFIG_OF_GPIO
+		/* If I2C node has no interrupts property, disable GPIO interrupts */
+		if (of_find_property(client->dev.of_node, "interrupts", NULL) == NULL)
+			irq_base = -1;
+#endif
 	}
 
 	chip->client = client;
@@ -683,11 +763,11 @@ static int pca953x_probe(struct i2c_client *client,
 	if (ret)
 		return ret;
 
-	ret = gpiochip_add(&chip->gpio_chip);
+	ret = pca953x_irq_setup(chip, id, irq_base);
 	if (ret)
 		return ret;
 
-	ret = pca953x_irq_setup(chip, id, irq_base);
+	ret = gpiochip_add(&chip->gpio_chip);
 	if (ret)
 		return ret;
 
@@ -737,7 +817,6 @@ static const struct of_device_id pca953x_dt_ids[] = {
 	{ .compatible = "nxp,pca9557", },
 	{ .compatible = "nxp,pca9574", },
 	{ .compatible = "nxp,pca9575", },
-	{ .compatible = "nxp,pca9698", },
 
 	{ .compatible = "maxim,max7310", },
 	{ .compatible = "maxim,max7312", },
@@ -748,8 +827,6 @@ static const struct of_device_id pca953x_dt_ids[] = {
 	{ .compatible = "ti,tca6408", },
 	{ .compatible = "ti,tca6416", },
 	{ .compatible = "ti,tca6424", },
-
-	{ .compatible = "exar,xra1202", },
 	{ }
 };
 

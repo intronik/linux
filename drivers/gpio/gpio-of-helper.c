@@ -135,6 +135,8 @@ gpio_of_entry_create(struct gpio_of_helper_info *info,
 	enum gpio_type type;
 	enum of_gpio_flags gpio_flags;
 	const char *name;
+	struct gpio_desc *desc;
+	u32 debounce=0;
 
 	/* get the type of the node first */
 	if (of_property_read_bool(node, "input"))
@@ -172,6 +174,7 @@ gpio_of_entry_create(struct gpio_of_helper_info *info,
 				count_flags |= COUNT_FALLING_EDGE;
 			if (of_property_read_bool(node, "count-rising-edge"))
 				count_flags |= COUNT_RISING_EDGE;
+			of_property_read_u32(node, "debounce", &debounce);
 			break;
 		case GPIO_TYPE_OUTPUT:
 			req_flags = GPIOF_DIR_OUT | GPIOF_EXPORT;
@@ -184,6 +187,9 @@ gpio_of_entry_create(struct gpio_of_helper_info *info,
 	if (of_property_read_bool(node, "dir-changeable"))
 		req_flags |= GPIOF_EXPORT_CHANGEABLE;
 
+	if (of_property_read_bool(node, "active-low"))
+		req_flags |= GPIOF_ACTIVE_LOW;
+		
 	/* request the gpio */
 	err = devm_gpio_request_one(dev, gpio, req_flags, name);
 	if (err != 0) {
@@ -191,8 +197,26 @@ gpio_of_entry_create(struct gpio_of_helper_info *info,
 		goto err_bad_node;
 	}
 
+	/* get gpio descriptor */
+	desc = gpio_to_desc(gpio);
+
+	/* set debounce, if gpio is input */
+	if (debounce)
+	{	
+		err = gpiod_set_debounce(desc, debounce);
+		if (err != 0)
+			dev_warn(dev, "Failed to request debounce for gpio '%s'\n", name);
+	}
+	
+	/* epxort symlink to my device directory */
+	err = gpiod_export_link(dev, name, desc);
+	if (err != 0) {
+		dev_err(dev, "Gpio export link failed for '%s', num %d!'", name, gpio);
+		goto err_bad_node;
+	}
+
 	irq = -1;
-	irq_flags = 0;
+	irq_flags = IRQF_ONESHOT;
 
 	/* counter mode requested - need an interrupt */
 	if (count_flags != 0) {
@@ -207,12 +231,6 @@ gpio_of_entry_create(struct gpio_of_helper_info *info,
 		if (count_flags & COUNT_FALLING_EDGE)
 			irq_flags |= IRQF_TRIGGER_FALLING;
 	}
-
-//	if (!idr_pre_get(&info->idr, GFP_KERNEL)) {
-//		dev_err(dev, "Failed on idr_pre_get of '%s'\n", name);
-//		err = -ENOMEM;
-//		goto err_no_mem;
-//	}
 
 	idr_preload(GFP_KERNEL);
 
@@ -236,21 +254,15 @@ gpio_of_entry_create(struct gpio_of_helper_info *info,
 	if (irq >= 0) {
 		atomic64_set(&entry->counter, 0);
 		entry->count_flags = count_flags;
-		err = devm_request_irq(dev, irq, gpio_of_helper_handler,
+		err = devm_request_threaded_irq(dev, irq, NULL, gpio_of_helper_handler,
 				irq_flags, name, entry);
 		if (err != 0) {
-			dev_err(dev, "Failed to request irq of '%s'\n", name);
+			dev_err(dev, "Failed to request irq %d of '%s'\n", irq, name);
 			goto err_no_irq;
 		}
 	}
 
 	/* all done; insert */
-//	err = idr_get_new(&info->idr, entry, &entry->id);
-//	if (IS_ERR_VALUE(err)) {
-//		dev_err(dev, "Failed to idr_get_new  of '%s'\n", name);
-//		goto err_fail_idr;
-//	}
-
 	err = idr_alloc(&info->idr, entry, 0, 0, GFP_NOWAIT);
 	if (err >= 0)
 		entry->id = err;
@@ -262,7 +274,7 @@ gpio_of_entry_create(struct gpio_of_helper_info *info,
 		goto err_fail_idr;
 	}
 
-	dev_info(dev, "Allocated GPIO id=%d\n", entry->id);
+	dev_info(dev, "Allocated GPIO \"%s\" id=%d\n", entry->name, entry->id);
 
 	return entry;
 
@@ -387,19 +399,17 @@ static int gpio_of_helper_remove(struct platform_device *pdev)
 }
 
 #ifdef CONFIG_PM
-//#ifdef CONFIG_PM_RUNTIME
 static int gpio_of_helper_runtime_suspend(struct device *dev)
 {
-	/* place holder */
+	pinctrl_pm_select_sleep_state(dev);
 	return 0;
 }
 
 static int gpio_of_helper_runtime_resume(struct device *dev)
 {
-	/* place holder */
+	pinctrl_pm_select_default_state(dev);
 	return 0;
 }
-//#endif /* CONFIG_PM_RUNTIME */
 
 static struct dev_pm_ops gpio_of_helper_pm_ops = {
 	SET_RUNTIME_PM_OPS(gpio_of_helper_runtime_suspend,

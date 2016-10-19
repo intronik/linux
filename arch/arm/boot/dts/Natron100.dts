@@ -1,0 +1,327 @@
+/*
+ * Copyright (C) 2015 Intronik GmbH
+ *
+ * Hardware specification for Intronik Natron control module.
+ * V1.0 - 2015-08-24
+ *        2016-05-18 Rev 1 DG RS485 Support
+ */
+/dts-v1/;
+
+#include "am33xx.dtsi"
+#include "am335x-bone-common-no-capemgr.dtsi"
+#include "am335x-intronik-pinmux.dtsi"
+#include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/input/input.h>
+
+/ {
+	model = "Intronik N-TRON v1.0 Rev1";
+	compatible = "ti,am335x-bone-black", "ti,am335x-bone", "ti,am33xx";
+};
+
+&ldo3_reg {
+	regulator-min-microvolt = <1800000>;
+	regulator-max-microvolt = <1800000>;
+	regulator-always-on;
+};
+
+&sham {
+	status = "okay";
+};
+
+&aes {
+	status = "okay";
+};
+
+&mmc1 {	// sd-card
+	vmmc-supply = <&vmmcsd_fixed>;
+};
+
+&mmc2 {	// emmc
+	status = "okay";
+	vmmc-supply = <&vmmcsd_fixed>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&emmc_pins>;
+	bus-width = <8>;
+};
+
+&uart0 { // X401 TTL PFOSTEN (PIN4: RX, PIN5: TX, GND: PIN1)
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart0_pins>;
+	status = "okay";
+};
+
+&uart2 { // X600 RS495 D-SUB-9 (D- Pin 6&7, D+ Pin 8&9)
+	status = "okay";
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&P9_22_uart_pin &P9_21_uart_pin &P9_23_gpio_pin>;
+	pinctrl-1 = <&P9_22_default_pin &P9_21_default_pin &P9_23_gpio_pd_pin>;
+	// enable RS485 support DRIVER ENABLE IS ON P9_23
+	// see driver source \\fileserver\linux-home\linuxdev\kernel4.1\drivers\tty\serial\omap-serial.c
+	rts-gpio = <&gpio1 17 GPIO_ACTIVE_HIGH>;
+	rs485-rts-active-high;
+	rs485-rx-during-tx;
+	rs485-rts-delay = <1 1>;
+	linux,rs485-enabled-at-boot-time;
+};
+
+&uart4 { // X600 RS232 D-SUB-9 (TX:2, RX:3, GND:5)
+	status = "okay";
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&P9_11_uart_pin &P9_13_uart_pin>;
+	pinctrl-1 = <&P9_11_default_pin &P9_13_default_pin>;
+};
+
+&dcan0 { // X2
+	 status = "okay";
+	 pinctrl-names = "default", "sleep";
+	 pinctrl-0 = <&P9_19_can_pin &P9_20_can_pin>;
+	 pinctrl-1 = <&P9_19_default_pin &P9_20_default_pin>;
+};
+
+&dcan1 { // X3
+	 status = "okay";
+	 pinctrl-names = "default", "sleep";
+	 pinctrl-0 = <&P9_24_can_pin &P9_26_can_pin>;
+	 pinctrl-1 = <&P9_24_default_pin &P9_26_default_pin>;
+};
+
+&epwmss0 {
+	status = "okay";
+};
+
+&epwmss1 {
+	status = "okay";
+};
+
+&ehrpwm0 { // pwm module used beeper (EHRPWM0B)
+	status = "okay";
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&P9_29_pwm_pin>;
+	pinctrl-1 = <&P9_29_gpio_pd_pin>;
+};
+/*
+&ehrpwm1 { // pwm module used backlight (EHRPWM1A)
+	status = "okay";
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&P9_14_pwm_pin>;
+	pinctrl-1 = <&P9_14_gpio_pd_pin>;
+};
+*/
+&pruss {
+	status = "disabled";
+};
+
+&lcdc {
+	status = "okay";
+};
+
+&rtc {  // we use an external i2c rtc, so this should be disabled
+	status = "disable";
+};
+
+&i2c1 {
+	status = "okay";
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&P9_17_i2c_pin &P9_18_i2c_pin>;
+	pinctrl-1 = <&P9_17_default_pin &P9_18_default_pin>;
+	clock-frequency = <400000>;
+		
+	rtc-mcp7940N@6F {
+		reg = <0x6f>;
+		compatible = "mcp7941x";
+		pinctrl-names = "default";
+		pinctrl-0 = <&P8_19_gpio_pu_pin>;
+		interrupt-parent = <&gpio0>;
+		interrupts = <22 IRQ_TYPE_EDGE_FALLING>;
+	};
+
+	ft5206@38 {
+		status = "okay";
+		reg = <0x38>;
+		compatible = "focaltech,ft5206";
+		pinctrl-names = "default";
+		pinctrl-0 = <
+			&P8_14_gpio_pu_pin 		// TOUCH_/IRQ
+			&P8_16_gpio_pu_pin		// TOUCH_/RST
+			&P8_17_gpio_pu_pin		// TOUCH_WK
+		>;
+		interrupt-parent = <&gpio0>;
+		interrupts = <26 IRQ_TYPE_EDGE_FALLING>;
+//		touch-gpio = <&gpio1 14 0>;
+		flash-firmware = "no";
+	};
+
+};
+
+&i2c2 { // required to enable CAN0
+	status = "disable";
+};
+
+/ {
+	cpus {
+		cpu@0 {
+			cpu0-supply = <&dcdc2_reg>;
+			/*
+			 * To consider voltage drop between PMIC and SoC,
+			 * tolerance value is reduced to 2% from 4% and
+			 * voltage value is increased as a precaution.
+			 */
+			operating-points = <
+				/* kHz    uV */
+				1000000	1325000
+				800000	1300000
+				600000	1112000
+				300000	969000
+			>;
+		};
+	};
+
+	panel {
+		status = "okay";
+		compatible = "ti,tilcdc,panel";
+		pinctrl-names = "default", "sleep";
+		pinctrl-0 = <&bbcape_lcd_pins &P8_07_gpio_pu_pin>;
+		pinctrl-1 = <&bbcape_lcd_pins &P8_07_gpio_pd_pin>;
+		panel-info {
+			ac-bias           = <255>;
+			ac-bias-intrpt    = <0>;
+			dma-burst-sz      = <16>;
+			bpp               = <16>;
+			fdd               = <0x80>;
+			sync-edge         = <1>;
+			sync-ctrl         = <1>;
+			raster-order      = <0>;
+			fifo-th           = <8>;
+		};
+		display-timings {
+			native-mode = <&NHD50timing>;
+			/* Settings for NEWHAVEN NHD5.0-800480TF-ATXI#-CTP */
+			NHD50timing: 800x480 {
+				clock-frequency = <30000000>;
+				hactive = <800>;
+				vactive = <480>;
+				hfront-porch = <40>;
+				hback-porch = <40>;
+				hsync-len = <48>;
+				vback-porch = <30>;
+				vfront-porch = <13>;
+				vsync-len = <3>;
+				hsync-active = <0>;
+				vsync-active = <0>;
+				de-active = <1>;
+				pixelclk-active = <0>;
+			};
+		};
+	};
+
+	beeper: beeper {
+		status = "okay";
+		compatible = "pwm-beeper";
+		pwms = <&ehrpwm0 1 250000 0>; // EHRPWM0B 4kHz
+	};
+/*
+	backlight: backlight {
+		compatible = "pwm-backlight";
+		pwms = <&ehrpwm1 0 20000 0>; // EHRPWM1A 20000ns=50KHz
+		brightness-levels = <0 55 80 105 130 155 180 205 230 255>;
+		default-brightness-level = <9>;
+		enable-gpios = <&gpio2 2 0>;
+	};
+*/
+	backlight: backlight {
+		status = "okay";
+		compatible = "gpio-backlight";
+		pinctrl-names = "default", "sleep";
+		pinctrl-0 = <&P9_14_gpio_pu_pin>;
+		pinctrl-1 = <&P9_14_gpio_pd_pin>;
+		gpios = <&gpio1 18 GPIO_ACTIVE_HIGH>;
+		default-on;
+	};
+
+	NatronIo {
+		compatible = "gpio-of-helper";
+		status = "okay";
+		pinctrl-names = "default", "sleep";
+		pinctrl-0 = <&P8_09_gpio_pin 	&P8_11_gpio_pin		&P8_13_gpio_pin		&P8_15_gpio_pin &P8_08_gpio_pin &P8_10_gpio_pin &P8_12_gpio_pin &P9_12_gpio_pin
+/*
+                    &P8_14_gpio_pu_pin 		// TOUCH_/IRQ
+                    &P8_16_gpio_pin		    // TOUCH_/RST
+                    &P8_17_gpio_pin		    // TOUCH_WK
+*/
+                    >;
+		pinctrl-1 = <&P8_09_gpio_pd_pin &P8_11_gpio_pd_pin	&P8_13_gpio_pu_pin	&P8_15_gpio_pin &P8_08_gpio_pin &P8_10_gpio_pin &P8_12_gpio_pin &P9_12_gpio_pu_pin>;
+
+		P8_09_OutMainsEnable {
+			gpio-name = "OutMainsEnable";
+			gpio = <&gpio2 5 0>;
+			output;
+			init-high;
+			active-low;
+		};
+		
+		P8_13_Out01 {
+			gpio-name = "Out01";
+			gpio = <&gpio0 23 0>;
+			output;
+			init-low;
+		};
+		
+		P8_11_Out02 {
+			gpio-name = "Out02";
+			gpio = <&gpio1 13 0>;
+			output;
+			init-low;
+		};
+
+		P9_12_OutResetChannels {
+			gpio-name = "OutResetChannels";
+			gpio = <&gpio1 28 0>;
+			output;
+			init-low;
+		};
+		
+		P8_15_InpMainsOn {
+			gpio-name = "InpMainsOn";
+			gpio = <&gpio1 15 0>;
+			input;
+		};
+
+		P8_08_Inp01 {
+			gpio-name = "Inp01";
+			input;
+			gpio = <&gpio2 3 0>;
+			debounce = <50000>;
+			active-low;
+		};
+
+		P8_10_Inp02 {
+			gpio-name = "Inp02";
+			input;
+			gpio = <&gpio2 4 0>;
+			debounce = <50000>;
+			active-low;
+		};
+		
+		P8_12_Inp03 {
+			gpio-name = "Inp03";
+			input;
+			gpio = <&gpio1 12 0>;
+			debounce = <50000>;
+			active-low;
+		};
+/*    
+		P8_16_OutTouchRst {
+			gpio-name = "OutTouchRst";
+			output;
+			gpio = <&gpio1 14 0>;
+			init-low;
+		};
+		P8_17_OutTouchWake {
+			gpio-name = "OutTouchWake";
+			output;
+			gpio = <&gpio0 27 0>;
+			init-low;
+		};        
+*/      
+	};
+};

@@ -1,0 +1,27 @@
+* East Rising ER-TPC050 / Silead GSL1680 touchscreen controller
+
+Required properties:
+- compatible: must be "silead,gsl1680"
+- reg: I2C address of the chip
+
+these properties are required:
+- interrupts: interrupt to which the chip is connected (also specify interrupt-parent)
+- touch-gpio: a phandle to the touch event GPIO
+
+Optional:
+- pinctrl-0: a phandle to a pinmux object
+
+Example:
+
+	i2c@00000000 {
+		/* configure GPIO1_14 as input and use this pin as interrupt source.
+		   Also */
+		touchscreen@40 {
+			compatible = "silead,gsl1680";
+			reg = <0x40>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&P8_16_pd>;
+			wake-gpio = <&gpio1 14 0>;
+			interrupt-parent = <&gpio1>;
+			interrupts = <14 0>;
+		};

@@ -1,0 +1,404 @@
+/*
+ * Copyright (C) 2016 Intronik GmbH
+ *
+ * Hardware specification for Intronik CANcom module.
+ * V0.40 (02.09.2016) - 2016-10-18 Daniel Gross
+ * V0.20 (11.03.2016) - 2016-05-18 Daniel Gross
+ */
+/dts-v1/;
+
+#include "am33xx.dtsi"
+#include "am335x-bone-common-no-capemgr.dtsi"
+#include "am335x-intronik-pinmux.dtsi"
+#include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/input/input.h>
+
+/ {
+	model = "Intronik CANcom2 v0.40";
+	compatible = "ti,am335x-bone-black", "ti,am335x-bone", "ti,am33xx";
+};
+
+&ldo3_reg {
+	regulator-min-microvolt = <1800000>;
+	regulator-max-microvolt = <1800000>;
+	regulator-always-on;
+};
+
+&sham {
+	status = "okay";
+};
+
+&aes {
+	status = "okay";
+};
+
+&mmc1 {	// sd-card
+	vmmc-supply = <&vmmcsd_fixed>;
+};
+
+&mmc2 {	// emmc
+	status = "okay";
+	vmmc-supply = <&vmmcsd_fixed>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&emmc_pins>;
+	bus-width = <8>;
+};
+
+&uart0 { // X3.3 (J1.4), X3.1 (J1.5)
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart0_pins>;
+	status = "okay";
+};
+
+&uart2 { // X7.3 (P9.21), X7.1 (P9.22)
+	status = "okay";
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&P9_22_uart_pin &P9_21_uart_pin>;
+	pinctrl-1 = <&P9_22_default_pin &P9_21_default_pin>;
+}; 
+
+&uart4 { // X6.3 (P9.11), X6.1 (P9.13)
+	status = "okay";
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&P9_11_uart_pin &P9_13_uart_pin>;
+	pinctrl-1 = <&P9_11_default_pin &P9_13_default_pin>;
+};
+
+&dcan0 { // X2
+	 status = "okay";
+	 pinctrl-names = "default", "sleep";
+	 pinctrl-0 = <&P9_19_can_pin &P9_20_can_pin>;
+	 pinctrl-1 = <&P9_19_default_pin &P9_20_default_pin>;
+};
+
+&dcan1 { // X3
+	 status = "okay";
+	 pinctrl-names = "default", "sleep";
+	 pinctrl-0 = <&P9_24_can_pin &P9_26_can_pin>;
+	 pinctrl-1 = <&P9_24_default_pin &P9_26_default_pin>;
+};
+
+&epwmss0 {
+	status = "okay";
+};
+
+&epwmss1 {
+	status = "okay";
+};
+
+&ehrpwm0 { // pwm module used beeper (EHRPWM0B)
+	status = "okay";
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&P9_29_pwm_pin>;
+	pinctrl-1 = <&P9_29_gpio_pd_pin>;
+};
+
+&pruss {
+	status = "disabled";
+};
+
+&lcdc {	// hdmi is not required
+	status = "disabled";
+};
+
+&rtc {  // we use an external i2c rtc, so this should be disabled
+	status = "disable";
+};
+
+&i2c1 {
+	status = "okay";
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&P9_17_i2c_pin &P9_18_i2c_pin>;
+	pinctrl-1 = <&P9_17_default_pin &P9_18_default_pin>;
+	clock-frequency = <400000>;
+		
+	inputextender: inputextender@20 {
+		reg = <0x20>;
+		compatible = "nxp,pca9535";
+		pinctrl-names = "default";
+		pinctrl-0 = <&P8_17_gpio_pu_pin>;
+		gpio-controller;
+		#gpio-cells = <2>;
+		interrupt-parent = <&gpio0>;
+		interrupts = <27 IRQ_TYPE_EDGE_FALLING>;
+		interrupt-controller;
+		#interrupt-cells = <2>;
+	};
+	outputextender: outputextender@21 {
+		reg = <0x21>;
+		compatible = "nxp,pca9535";
+	};
+
+	rtc-mcp7940N@6F {
+		reg = <0x6f>;
+		compatible = "mcp7941x";
+		pinctrl-names = "default";
+		pinctrl-0 = <&P8_19_gpio_pu_pin>;
+		interrupt-parent = <&gpio0>;
+		interrupts = <22 IRQ_TYPE_EDGE_FALLING>;
+	};
+};
+
+&i2c2 { // required to enable CAN0
+	status = "disable";
+};
+
+
+// we do not want the default leds (that way we save a lot of power, in sleep)
+/delete-node/ &leds;
+
+/ {
+	cpus {
+		cpu@0 {
+			cpu0-supply = <&dcdc2_reg>;
+			/*
+			 * To consider voltage drop between PMIC and SoC,
+			 * tolerance value is reduced to 2% from 4% and
+			 * voltage value is increased as a precaution.
+			 */
+			operating-points = <
+				/* kHz    uV */
+				1000000	1325000
+				800000	1300000
+				600000	1112000
+				300000	969000
+			>;
+		};
+	};
+
+	intronik_leds: intronik_leds {
+		pinctrl-names = "default", "sleep";
+		pinctrl-0 = <&P9_30_gpio_pu_pin &P9_31_gpio_pu_pin>;
+		pinctrl-1 = <&P9_30_gpio_pu_pin &P9_31_gpio_pu_pin>;
+		compatible = "gpio-leds";
+		
+		led@green {		// P9_30
+			label = "cancom:led:green";
+			gpios = <&gpio3 16 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "heartbeat";
+			default-state = "off";
+		};
+		
+		led@red {		// P9_31
+			label = "cancom:led:red";
+			gpios = <&gpio3 14 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "timer";
+			default-state = "off";
+		};
+	};
+
+	beeper: beeper {
+		status = "okay";
+		compatible = "pwm-beeper";
+		pwms = <&ehrpwm0 1 250000 0>; // EHRPWM0B 4kHz
+	};
+	
+	CanComIo {
+		pinctrl-names = "default", "sleep";
+		pinctrl-0 = <
+			&P8_13_gpio_pin		// UART2 RX Wakeup Event
+			&P8_14_gpio_pin		// UART4 RX Wakeup Event
+			&P9_41_gpio_pin		// CAN0 RX Wakeup Event
+			&P9_42_gpio_pin		// CAN1 RX Wakeup Event
+		>;
+		pinctrl-1 = <
+			&P8_13_gpio_pin		// UART2 RX Wakeup Event
+			&P8_14_gpio_pin		// UART4 RX Wakeup Event
+			&P9_41_gpio_pin		// CAN0 RX Wakeup Event
+			&P9_42_gpio_pin		// CAN1 RX Wakeup Event
+		>;
+
+		compatible = "gpio-of-helper";
+		status = "okay";
+		
+		// !!!BITTE BEACHTEN!!!
+		// Es müssen hier zuerst die IOs vom i2c-gpioextender verwendet werden.
+		// Der gpioextender gibt beim ersten Aufruf meist ERR_DEFERR zurück, wenn
+		// dann aber schon ein Teil der IOs angelegt ist, kommt der gpio-of-helper
+		// nicht damit klar und bricht alles ab.
+		
+		CanComInp00 {
+			gpio-name = "Inp00";
+			gpio = <&inputextender 0 0>;
+			input;
+		};		
+		CanComInp01 {
+			gpio-name = "Inp01";
+			gpio = <&inputextender 1 0>;
+			input;
+		};
+		CanComInp02 {
+			gpio-name = "Inp02";
+			gpio = <&inputextender 2 0>;
+			input;
+		};
+		CanComInp03 {
+			gpio-name = "Inp03";
+			gpio = <&inputextender 3 0>;
+			input;
+		};
+		CanComInp04 {
+			gpio-name = "Inp04";
+			gpio = <&inputextender 4 0>;
+			input;
+		};
+		CanComInp05 {
+			gpio-name = "Inp05";
+			gpio = <&inputextender 5 0>;
+			input;
+		};
+		CanComInp06 {
+			gpio-name = "Inp06";
+			gpio = <&inputextender 6 0>;
+			input;
+		};
+		CanComInp07 {
+			gpio-name = "Inp07";
+			gpio = <&inputextender 7 0>;
+			input;
+		};		
+		CanComInp08 {
+			gpio-name = "Inp08";
+			gpio = <&inputextender 8 0>;
+			input;
+		};		
+		CanComInp09 {
+			gpio-name = "Inp09";
+			gpio = <&inputextender 9 0>;
+			input;
+		};
+		CanComInp10 {
+			gpio-name = "Inp10";
+			gpio = <&inputextender 10 0>;
+			input;
+		};
+		CanComInp11 {
+			gpio-name = "Inp11";
+			gpio = <&inputextender 11 0>;
+			input;
+		};
+		CanComInp12 {
+			gpio-name = "Inp12";
+			gpio = <&inputextender 12 0>;
+			input;
+		};
+		CanComInp13 {
+			gpio-name = "Inp13";
+			gpio = <&inputextender 13 0>;
+			input;
+		};
+		CanComInp14 {
+			gpio-name = "Inp14";
+			gpio = <&inputextender 14 0>;
+			input;
+		};
+		CanComInp15 {
+			gpio-name = "Inp15";
+			gpio = <&inputextender 15 0>;
+			input;
+		};		
+		//		
+		// OUTPUTS
+		//
+		CanComOut00 {
+			gpio-name = "Out00";
+			gpio = <&outputextender 0 0>;
+			output;
+			init-low;
+		};	
+		CanComOut01 {
+			gpio-name = "Out01";
+			gpio = <&outputextender 1 0>;
+			output;
+			init-low;
+		};	
+		CanComOut02 {
+			gpio-name = "Out02";
+			gpio = <&outputextender 2 0>;
+			output;
+			init-low;
+		};
+		CanComOut03 {
+			gpio-name = "Out03";
+			gpio = <&outputextender 3 0>;
+			output;
+			init-low;
+		};
+		CanComOut04 {
+			gpio-name = "Out04";
+			gpio = <&outputextender 4 0>;
+			output;
+			init-low;
+		};
+		CanComOut05 {
+			gpio-name = "Out05";
+			gpio = <&outputextender 5 0>;
+			output;
+			init-low;
+		};
+		CanComOut06 {
+			gpio-name = "Out06";
+			gpio = <&outputextender 6 0>;
+			output;
+			init-low;
+		};	
+		CanComOut07 {
+			gpio-name = "Out07";
+			gpio = <&outputextender 7 0>;
+			output;
+			init-low;
+		};	
+		CanComOut08 {
+			gpio-name = "Out08";
+			gpio = <&outputextender 8 0>;
+			output;
+			init-low;
+		};	
+		CanComOut09 {
+			gpio-name = "Out09";
+			gpio = <&outputextender 9 0>;
+			output;
+			init-low;
+		};
+		CanComOut10 {
+			gpio-name = "Out10";
+			gpio = <&outputextender 10 0>;
+			output;
+			init-low;
+		};	
+		CanComOut11 {
+			gpio-name = "Out11";
+			gpio = <&outputextender 11 0>;
+			output;
+			init-low;
+		};	
+		CanComOutCanPwrEnable {	// P9_16: OUT_12
+			gpio-name = "OutCanPwrEnable";
+			gpio = <&outputextender 12 0>;
+			output;
+			init-high;
+		};	
+		
+		// just for can wakup reasons
+		UART2Wakup { // P8_13 UART2 RX
+			gpio-name = "InpUart2rx";
+			gpio = <&gpio0 23 0>;
+			input;
+		};
+		UART4Wakup { // P8_14 UART2 RX
+			gpio-name = "InpUart4rx";
+			gpio = <&gpio0 26 0>;
+			input;
+		};
+		Can0Wakup { // P9_41 CAN0 RX
+			gpio-name = "InpCan0rx";
+			gpio = <&gpio0 20 0>;
+			input;
+		};
+		Can1Wakup { // P9_42 CAN1 RX
+			gpio-name = "InpCan1rx";
+			gpio = <&gpio0 7 0>;
+			input;
+		};
+	};
+};
