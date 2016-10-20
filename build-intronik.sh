@@ -16,5 +16,5 @@ export CROSS_COMPILE="${CC}"
 mkdir -p ${DEPLOY}
 #make --jobs=${CORES} menuconfig
 #make --jobs=${CORES} zImage modules dtbs
-fakeroot make -j${CORES} ARCH=arm KBUILD_DEBARCH=${DEBARCH} LOCALVERSION=-${BUILD} CROSS_COMPILE=${CC} KDEB_PKGVERSION=1 deb-pkg
-
+# https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/scripts/package/builddeb?id=3716001bcb7f5822382ac1f2f54226b87312cc6b
+fakeroot make -j${CORES} ARCH=arm KBUILD_DEBARCH=${DEBARCH} LOCALVERSION=-${BUILD} CROSS_COMPILE=${CC} KDEB_SOURCENAME=intronik KDEB_PKGVERSION=1 deb-pkg
