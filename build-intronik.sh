@@ -7,13 +7,14 @@ export CORES=1
 export BUILD=intronik7
 export DISTRO=cross
 export DEBARCH=armhf
+export VERSION=jessie
 export ARCH=arm
 # export config="intronik_defconfig"
 export DEPLOY=/home/INTRONIK/linuxdev/deploy
 export LOCALVERSION=-${BUILD}
 export CROSS_COMPILE="${CC}"
 mkdir -p ${DEPLOY}
-make --jobs=${CORES} menuconfig
-make --jobs=${CORES} zImage modules dtbs
-fakeroot make -j${CORES} ARCH=arm KBUILD_DEBARCH=${DEBARCH} LOCALVERSION=-${BUILD} CROSS_COMPILE=${CC} KDEB_PKGVERSION=1${DISTRO} deb-pkg
+#make --jobs=${CORES} menuconfig
+#make --jobs=${CORES} zImage modules dtbs
+fakeroot make -j${CORES} ARCH=arm KBUILD_DEBARCH=${DEBARCH} LOCALVERSION=-${BUILD} CROSS_COMPILE=${CC} KDEB_PKGVERSION=1 deb-pkg
 
