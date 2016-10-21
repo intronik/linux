@@ -126,6 +126,7 @@
 	};
 	outputextender: outputextender@21 {
 		reg = <0x21>;
+		#gpio-cells = <2>;
 		compatible = "nxp,pca9535";
 	};
 
