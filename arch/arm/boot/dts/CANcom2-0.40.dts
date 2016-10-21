@@ -2,7 +2,7 @@
  * Copyright (C) 2016 Intronik GmbH
  *
  * Hardware specification for Intronik CANcom module.
- * V0.40 (02.09.2016) - 2016-10-18 Daniel Gross
+ * V0.40 (02.09.2016) - 2016-10-21 Daniel Gross
  * V0.20 (11.03.2016) - 2016-05-18 Daniel Gross
  */
 /dts-v1/;
@@ -103,6 +103,20 @@
 
 &rtc {  // we use an external i2c rtc, so this should be disabled
 	status = "disable";
+};
+
+&tscadc {
+    status = "okay";
+};
+
+&am335x_adc {
+    // https://gist.github.com/matthewmcneely/bf44655c74096ff96475
+    // path "/sys/bus/iio/devices/iio:device0"
+    // 12bit raw, 4095==1800mV => 0,43956043956043956043956043956044mV/#
+    // Spannungsteiler BBB 22,38
+	// AIN0 - P9_39 VInp => ca. 1mV/#
+	// AIN1 - P9_40 xAInp => ca. 1mV/#
+    ti,adc-channels = <0 1 2 3 4 5 6 7>;
 };
 
 &i2c1 {
