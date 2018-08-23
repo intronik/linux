@@ -4,6 +4,9 @@
  * Hardware specification for Intronik Natron control module.
  * V1.0 - 2015-08-24
  *        2016-05-18 Rev 1 DG RS485 Support
+ * V3.0 - 2018-08-23 Rev 2 DG
+ *                     - additional outputs (LED_NC=P9_27, LED_NO=P9_28)
+ *                     - disabled can1
  */
 /dts-v1/;
 
@@ -14,7 +17,7 @@
 #include <dt-bindings/input/input.h>
 
 / {
-	model = "Intronik N-TRON v1.0 Rev1";
+	model = "Intronik N-TRON v3.0 Rev2";
 	compatible = "ti,am335x-bone-black", "ti,am335x-bone", "ti,am33xx";
 };
 
@@ -79,7 +82,7 @@
 };
 
 &dcan1 { // X3
-	 status = "okay";
+	 status = "disabled";
 	 pinctrl-names = "default", "sleep";
 	 pinctrl-0 = <&P9_24_can_pin &P9_26_can_pin>;
 	 pinctrl-1 = <&P9_24_default_pin &P9_26_default_pin>;
@@ -242,14 +245,35 @@
 		compatible = "gpio-of-helper";
 		status = "okay";
 		pinctrl-names = "default", "sleep";
-		pinctrl-0 = <&P8_09_gpio_pin 	&P8_11_gpio_pin		&P8_13_gpio_pin		&P8_15_gpio_pin &P8_08_gpio_pin &P8_10_gpio_pin &P8_12_gpio_pin &P9_12_gpio_pin
 /*
-                    &P8_14_gpio_pu_pin 		// TOUCH_/IRQ
-                    &P8_16_gpio_pin		    // TOUCH_/RST
-                    &P8_17_gpio_pin		    // TOUCH_WK
+		&P8_14_gpio_pu_pin 					// TOUCH_/IRQ
+		&P8_16_gpio_pin		    			// TOUCH_/RST
+		&P8_17_gpio_pin		    			// TOUCH_WK
 */
-                    >;
-		pinctrl-1 = <&P8_09_gpio_pd_pin &P8_11_gpio_pd_pin	&P8_13_gpio_pu_pin	&P8_15_gpio_pin &P8_08_gpio_pin &P8_10_gpio_pin &P8_12_gpio_pin &P9_12_gpio_pu_pin>;
+		pinctrl-0 = <
+			&P8_09_gpio_pin					// /PWR_ENABLE (backlight)
+			&P8_11_gpio_pin					// ISO_OUT2
+			&P8_13_gpio_pin
+			&P8_15_gpio_pin
+			&P8_08_gpio_pin
+			&P8_10_gpio_pin 
+			&P8_12_gpio_pin
+			&P9_12_gpio_pin
+			&P9_27_gpio_pin					// LED_NC
+			&P9_27_gpio_pin					// LED_NO
+		>;
+		pinctrl-1 = <
+			&P8_09_gpio_pd_pin
+			&P8_11_gpio_pd_pin
+			&P8_13_gpio_pu_pin
+			&P8_15_gpio_pin
+			&P8_08_gpio_pin
+			&P8_10_gpio_pin
+			&P8_12_gpio_pin
+			&P9_12_gpio_pu_pin
+			&P9_27_gpio_pd_pin				// LED_NC
+			&P9_27_gpio_pd_pin				// LED_NO
+		>;
 
 		P8_09_OutMainsEnable {
 			gpio-name = "OutMainsEnable";
@@ -279,7 +303,22 @@
 			output;
 			init-low;
 		};
-		
+
+		P9_27_OutLedNc {
+			gpio-name = "OutLedNc";
+			gpio = <&gpio3 19 0>;
+			output;
+			active-low;
+			init-high;
+		};
+				
+		P9_28_OutLedNo {
+			gpio-name = "OutLedNo";
+			gpio = <&gpio3 17 0>;
+			output;
+			init-low;
+		};
+
 		P8_15_InpMainsOn {
 			gpio-name = "InpMainsOn";
 			gpio = <&gpio1 15 0>;
