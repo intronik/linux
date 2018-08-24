@@ -7,6 +7,7 @@
  * V3.0 - 2018-08-23 Rev 2 DG
  *                     - additional outputs (LED_NC=P9_27, LED_NO=P9_28)
  *                     - disabled can1
+ * V3.0 - 2018-08-24 Rev 3 DG (polarity of LedNc changed)
  */
 /dts-v1/;
 
@@ -17,7 +18,7 @@
 #include <dt-bindings/input/input.h>
 
 / {
-	model = "Intronik N-TRON v3.0 Rev2";
+	model = "Intronik N-TRON v3.0 2018-08-24 Rev3";
 	compatible = "ti,am335x-bone-black", "ti,am335x-bone", "ti,am33xx";
 };
 
@@ -308,7 +309,6 @@
 			gpio-name = "OutLedNc";
 			gpio = <&gpio3 19 0>;
 			output;
-			active-low;
 			init-high;
 		};
 				
