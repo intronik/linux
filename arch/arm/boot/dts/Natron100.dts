@@ -8,6 +8,9 @@
  *                     - additional outputs (LED_NC=P9_27, LED_NO=P9_28)
  *                     - disabled can1
  * V3.0 - 2018-08-24 Rev 3 DG (polarity of LedNc changed)
+ * V4.0 - 2019-12-19 Rev 4 AK 
+ 						- enabled CAN1
+ 						- disabled UART1 (for CAN1 use)
  */
 /dts-v1/;
 
@@ -18,7 +21,7 @@
 #include <dt-bindings/input/input.h>
 
 / {
-	model = "Intronik N-TRON v3.0 2018-08-24 Rev3";
+	model = "Intronik THERMONOM v4.0 2019-12-19 Rev5";
 	compatible = "ti,am335x-bone-black", "ti,am335x-bone", "ti,am33xx";
 };
 
@@ -54,6 +57,10 @@
 	status = "okay";
 };
 
+&uart1 { // required to enable CAN1
+	status = "disable";
+};
+
 &uart2 { // X600 RS495 D-SUB-9 (D- Pin 6&7, D+ Pin 8&9)
 	status = "okay";
 	pinctrl-names = "default", "sleep";
@@ -83,7 +90,7 @@
 };
 
 &dcan1 { // X3
-	 status = "disabled";
+	 status = "okay";
 	 pinctrl-names = "default", "sleep";
 	 pinctrl-0 = <&P9_24_can_pin &P9_26_can_pin>;
 	 pinctrl-1 = <&P9_24_default_pin &P9_26_default_pin>;
